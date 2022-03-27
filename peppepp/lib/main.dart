@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_circle_color_picker/flutter_circle_color_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'color_filters.dart';
 import 'package:image/image.dart' as img;
@@ -28,9 +29,11 @@ class _HomePageState extends State<HomePage> {
   Uint8List? srcImage;
 
   final List<List<int>> contrast = [
-    [0, -1, 0],
-    [-1, 5, -1],
-    [0, -1, 0]
+    [1, 4, 7, 4, 1],
+    [4, 16, 26, 16, 4],
+    [7, 26, 41, 26, 7],
+    [4, 16, 26, 16, 4],
+    [1, 4, 7, 4, 1],
   ];
 
   final imagePicker = ImagePicker();
@@ -60,21 +63,34 @@ class _HomePageState extends State<HomePage> {
         matrix.length, (i) => List.from(matrix[i]),
         growable: false);
 
-    // print(matrix);
-    // print("___");
-    // print(newMatrix);
-
-    for (int i = 1; i < matrix.length - 1; ++i) {
-      for (int j = 1; j < matrix[0].length - 1; ++j) {
-        newMatrix[i][j] = matrix[i - 1][j - 1] * contrast[0][0] +
-            matrix[i - 1][j] * contrast[0][1] +
-            matrix[i - 1][j + 1] * contrast[0][2] +
-            matrix[i][j - 1] * contrast[1][0] +
-            matrix[i][j] * contrast[1][1] +
-            matrix[i][j + 1] * contrast[1][2] +
-            matrix[i + 1][j - 1] * contrast[2][0] +
-            matrix[i + 1][j] * contrast[2][1] +
-            matrix[i + 1][j + 1] * contrast[2][2];
+    for (int i = 3; i < matrix.length - 3; ++i) {
+      for (int j = 3; j < matrix[0].length - 3; ++j) {
+        newMatrix[i][j] = (matrix[i - 2][j - 2] * contrast[0][0] +
+                matrix[i - 2][j - 1] * contrast[0][1] +
+                matrix[i - 2][j] * contrast[0][2] +
+                matrix[i - 2][j + 1] * contrast[0][3] +
+                matrix[i - 2][j + 2] * contrast[0][4] +
+                matrix[i - 1][j - 2] * contrast[1][0] +
+                matrix[i - 1][j - 1] * contrast[1][1] +
+                matrix[i - 1][j] * contrast[1][2] +
+                matrix[i - 1][j + 1] * contrast[1][3] +
+                matrix[i - 1][j + 2] * contrast[1][4] +
+                matrix[i][j - 2] * contrast[2][0] +
+                matrix[i][j - 1] * contrast[2][1] +
+                matrix[i][j] * contrast[2][2] +
+                matrix[i][j + 1] * contrast[2][3] +
+                matrix[i][j + 2] * contrast[2][4] +
+                matrix[i + 1][j - 2] * contrast[3][0] +
+                matrix[i + 1][j - 1] * contrast[3][1] +
+                matrix[i + 1][j] * contrast[3][2] +
+                matrix[i + 1][j + 1] * contrast[3][3] +
+                matrix[i + 1][j + 2] * contrast[3][4] +
+                matrix[i + 2][j - 2] * contrast[4][0] +
+                matrix[i + 2][j - 1] * contrast[4][1] +
+                matrix[i + 2][j] * contrast[4][2] +
+                matrix[i + 2][j + 1] * contrast[4][3] +
+                matrix[i + 2][j + 2] * contrast[4][4] / 273)
+            .floor();
       }
     }
     return newMatrix;
@@ -109,14 +125,10 @@ class _HomePageState extends State<HomePage> {
             growable: false),
         growable: false);
 
-    // Filter
-    // print(rMatrix);
     rMatrix = filter(rMatrix);
-    // print("____");
-    // print(rMatrix);
     gMatrix = filter(gMatrix);
     bMatrix = filter(bMatrix);
-    aMatrix = filter(aMatrix);
+    // aMatrix = filter(aMatrix);
 
     for (int i = 0; i < im.height; ++i) {
       for (int j = 0; j < im.width; ++j) {
@@ -131,6 +143,18 @@ class _HomePageState extends State<HomePage> {
       _image = img.encodeJpg(im) as Uint8List?;
     });
   }
+
+  Color primaryColor = Colors.white;
+  final _controller = CircleColorPickerController(
+    initialColor: Colors.white,
+  );
+
+  Widget buildColorPicker() => CircleColorPicker(
+    controller: _controller,
+    onChanged: (color) {
+      setState(() => primaryColor = color);
+    },
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +174,9 @@ class _HomePageState extends State<HomePage> {
       )),
       body: Center(
           child: _image != null
-              ? Image.memory(_image!)
+              ? ColorFiltered(
+                  colorFilter: ColorFilter.mode(primaryColor, BlendMode.color),
+                  child: Image.memory(_image!))
               : const Text("No img yet...")),
       floatingActionButton: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -159,25 +185,35 @@ class _HomePageState extends State<HomePage> {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 IconButton(
-                    onPressed: convFilter, icon: const Icon(Icons.color_lens_sharp)),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                            title: const Text("Chose color"),
+                            content:
+                              buildColorPicker(),
+                            actions: [
+                              TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text("OK")),
+                            ],),
+                            
+                      );
+                    },
+                    icon: const Icon(Icons.color_lens_sharp)),
                 const Text("Color filter")
               ],
             ),
-            // const Spacer(),
             Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 IconButton(
-                    onPressed: convFilter, icon: const Icon(Icons.blur_circular)),
+                    onPressed: convFilter,
+                    icon: const Icon(Icons.blur_circular)),
                 const Text("Gauss blur")
               ],
             )
-          ]
-          // children: <Widget> [
-          //   IconButton(onPressed: convFilter, icon: const Icon(Icons.filter),
-          //   ),
-          // ],
-          ),
+          ]),
     );
   }
 }
