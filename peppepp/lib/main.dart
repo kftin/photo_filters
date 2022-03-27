@@ -65,7 +65,7 @@ class _HomePageState extends State<HomePage> {
 
     for (int i = 3; i < matrix.length - 3; ++i) {
       for (int j = 3; j < matrix[0].length - 3; ++j) {
-        newMatrix[i][j] = (matrix[i - 2][j - 2] * contrast[0][0] +
+        newMatrix[i][j] = ((matrix[i - 2][j - 2] * contrast[0][0] +
                 matrix[i - 2][j - 1] * contrast[0][1] +
                 matrix[i - 2][j] * contrast[0][2] +
                 matrix[i - 2][j + 1] * contrast[0][3] +
@@ -89,7 +89,7 @@ class _HomePageState extends State<HomePage> {
                 matrix[i + 2][j - 1] * contrast[4][1] +
                 matrix[i + 2][j] * contrast[4][2] +
                 matrix[i + 2][j + 1] * contrast[4][3] +
-                matrix[i + 2][j + 2] * contrast[4][4] / 273)
+                matrix[i + 2][j + 2] * contrast[4][4]) / 273)
             .floor();
       }
     }
