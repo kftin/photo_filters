@@ -7,6 +7,10 @@ import 'package:flutter_circle_color_picker/flutter_circle_color_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'color_filters.dart';
 import 'package:image/image.dart' as img;
+import 'package:share_plus/share_plus.dart';
+import 'package:filesystem_picker/filesystem_picker.dart';
+import 'package:easy_folder_picker/DirectoryList.dart';
+import 'package:easy_folder_picker/FolderPicker.dart';
 
 void main() {
   runApp(MyApp());
@@ -25,8 +29,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  Uint8List? _image;
+  Uint8List? _image; // Картинка, которую сохранять
   Uint8List? srcImage;
+  String? _path;
 
   final List<List<int>> contrast = [
     [1, 4, 7, 4, 1],
@@ -55,6 +60,28 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       srcImage = bytes;
       _image = srcImage;
+      _path = image.path;
+    });
+  }
+
+  Future shareImage() async {
+    List<String> ls = [_path!];
+    Share.shareFiles(ls);
+  }
+
+  Future saveImage() async {
+    String? path = await FilesystemPicker.open(
+      title: 'Save to folder',
+      context: context,
+      fsType: FilesystemType.folder,
+      pickText: 'Save file to this folder',
+      rootDirectory: Directory('/storage/emulated/0/Download/'),
+    );
+    print(path);
+    File file = File(path! + '/testImage.jpg');
+    file.writeAsBytes(_image as List<int>);
+    setState(() {
+      _path = path + '/testImage.jpeg';
     });
   }
 
@@ -66,30 +93,31 @@ class _HomePageState extends State<HomePage> {
     for (int i = 3; i < matrix.length - 3; ++i) {
       for (int j = 3; j < matrix[0].length - 3; ++j) {
         newMatrix[i][j] = ((matrix[i - 2][j - 2] * contrast[0][0] +
-                matrix[i - 2][j - 1] * contrast[0][1] +
-                matrix[i - 2][j] * contrast[0][2] +
-                matrix[i - 2][j + 1] * contrast[0][3] +
-                matrix[i - 2][j + 2] * contrast[0][4] +
-                matrix[i - 1][j - 2] * contrast[1][0] +
-                matrix[i - 1][j - 1] * contrast[1][1] +
-                matrix[i - 1][j] * contrast[1][2] +
-                matrix[i - 1][j + 1] * contrast[1][3] +
-                matrix[i - 1][j + 2] * contrast[1][4] +
-                matrix[i][j - 2] * contrast[2][0] +
-                matrix[i][j - 1] * contrast[2][1] +
-                matrix[i][j] * contrast[2][2] +
-                matrix[i][j + 1] * contrast[2][3] +
-                matrix[i][j + 2] * contrast[2][4] +
-                matrix[i + 1][j - 2] * contrast[3][0] +
-                matrix[i + 1][j - 1] * contrast[3][1] +
-                matrix[i + 1][j] * contrast[3][2] +
-                matrix[i + 1][j + 1] * contrast[3][3] +
-                matrix[i + 1][j + 2] * contrast[3][4] +
-                matrix[i + 2][j - 2] * contrast[4][0] +
-                matrix[i + 2][j - 1] * contrast[4][1] +
-                matrix[i + 2][j] * contrast[4][2] +
-                matrix[i + 2][j + 1] * contrast[4][3] +
-                matrix[i + 2][j + 2] * contrast[4][4]) / 273)
+                    matrix[i - 2][j - 1] * contrast[0][1] +
+                    matrix[i - 2][j] * contrast[0][2] +
+                    matrix[i - 2][j + 1] * contrast[0][3] +
+                    matrix[i - 2][j + 2] * contrast[0][4] +
+                    matrix[i - 1][j - 2] * contrast[1][0] +
+                    matrix[i - 1][j - 1] * contrast[1][1] +
+                    matrix[i - 1][j] * contrast[1][2] +
+                    matrix[i - 1][j + 1] * contrast[1][3] +
+                    matrix[i - 1][j + 2] * contrast[1][4] +
+                    matrix[i][j - 2] * contrast[2][0] +
+                    matrix[i][j - 1] * contrast[2][1] +
+                    matrix[i][j] * contrast[2][2] +
+                    matrix[i][j + 1] * contrast[2][3] +
+                    matrix[i][j + 2] * contrast[2][4] +
+                    matrix[i + 1][j - 2] * contrast[3][0] +
+                    matrix[i + 1][j - 1] * contrast[3][1] +
+                    matrix[i + 1][j] * contrast[3][2] +
+                    matrix[i + 1][j + 1] * contrast[3][3] +
+                    matrix[i + 1][j + 2] * contrast[3][4] +
+                    matrix[i + 2][j - 2] * contrast[4][0] +
+                    matrix[i + 2][j - 1] * contrast[4][1] +
+                    matrix[i + 2][j] * contrast[4][2] +
+                    matrix[i + 2][j + 1] * contrast[4][3] +
+                    matrix[i + 2][j + 2] * contrast[4][4]) /
+                273)
             .floor();
       }
     }
@@ -150,11 +178,11 @@ class _HomePageState extends State<HomePage> {
   );
 
   Widget buildColorPicker() => CircleColorPicker(
-    controller: _controller,
-    onChanged: (color) {
-      setState(() => primaryColor = color);
-    },
-  );
+        controller: _controller,
+        onChanged: (color) {
+          setState(() => primaryColor = color);
+        },
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -167,9 +195,8 @@ class _HomePageState extends State<HomePage> {
           IconButton(
               onPressed: getImageGallery, icon: const Icon(Icons.folder)),
           const Spacer(),
-          IconButton(
-              onPressed: getImageGallery, icon: const Icon(Icons.save_alt)),
-          IconButton(onPressed: getImageGallery, icon: const Icon(Icons.share)),
+          IconButton(onPressed: saveImage, icon: const Icon(Icons.save_alt)),
+          IconButton(onPressed: shareImage, icon: const Icon(Icons.share)),
         ],
       )),
       body: Center(
@@ -189,15 +216,14 @@ class _HomePageState extends State<HomePage> {
                       showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                            title: const Text("Chose color"),
-                            content:
-                              buildColorPicker(),
-                            actions: [
-                              TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text("OK")),
-                            ],),
-                            
+                          title: const Text("Chose color"),
+                          content: buildColorPicker(),
+                          actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text("OK")),
+                          ],
+                        ),
                       );
                     },
                     icon: const Icon(Icons.color_lens_sharp)),
