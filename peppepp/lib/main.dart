@@ -1,4 +1,5 @@
 import 'dart:ffi';
+import 'dart:math';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
@@ -33,13 +34,13 @@ class _HomePageState extends State<HomePage> {
   Uint8List? srcImage;
   String? _path;
 
-  final List<List<int>> contrast = [
-    [1, 4, 7, 4, 1],
-    [4, 16, 26, 16, 4],
-    [7, 26, 41, 26, 7],
-    [4, 16, 26, 16, 4],
-    [1, 4, 7, 4, 1],
-  ];
+  // final List<List<int>> contrast = [
+  //   [1, 4, 7, 4, 1],
+  //   [4, 16, 26, 16, 4],
+  //   [7, 26, 41, 26, 7],
+  //   [4, 16, 26, 16, 4],
+  //   [1, 4, 7, 4, 1],
+  // ];
 
   final imagePicker = ImagePicker();
 
@@ -65,6 +66,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future shareImage() async {
+    await saveImage();
     List<String> ls = [_path!];
     Share.shareFiles(ls);
   }
@@ -77,54 +79,47 @@ class _HomePageState extends State<HomePage> {
       pickText: 'Save file to this folder',
       rootDirectory: Directory('/storage/emulated/0/Download/'),
     );
-    print(path);
+    // print(path);
     File file = File(path! + '/testImage.jpg');
     file.writeAsBytes(_image as List<int>);
     setState(() {
-      _path = path + '/testImage.jpeg';
+      _path = path + '/testImage.jpg';
     });
   }
 
-  List<List<int>> filter(List<List<int>> matrix) {
+  bool isPixel(int i, int j, int h, int w) {
+    if (i >= 0 && i < h && j >= 0 && j < w) {
+      return true;
+    }
+    return false;
+  }
+
+  List<List<int>> filter(List<List<int>> matrix, int r) {
     List<List<int>> newMatrix = List.generate(
         matrix.length, (i) => List.from(matrix[i]),
         growable: false);
 
-    for (int i = 3; i < matrix.length - 3; ++i) {
-      for (int j = 3; j < matrix[0].length - 3; ++j) {
-        newMatrix[i][j] = ((matrix[i - 2][j - 2] * contrast[0][0] +
-                    matrix[i - 2][j - 1] * contrast[0][1] +
-                    matrix[i - 2][j] * contrast[0][2] +
-                    matrix[i - 2][j + 1] * contrast[0][3] +
-                    matrix[i - 2][j + 2] * contrast[0][4] +
-                    matrix[i - 1][j - 2] * contrast[1][0] +
-                    matrix[i - 1][j - 1] * contrast[1][1] +
-                    matrix[i - 1][j] * contrast[1][2] +
-                    matrix[i - 1][j + 1] * contrast[1][3] +
-                    matrix[i - 1][j + 2] * contrast[1][4] +
-                    matrix[i][j - 2] * contrast[2][0] +
-                    matrix[i][j - 1] * contrast[2][1] +
-                    matrix[i][j] * contrast[2][2] +
-                    matrix[i][j + 1] * contrast[2][3] +
-                    matrix[i][j + 2] * contrast[2][4] +
-                    matrix[i + 1][j - 2] * contrast[3][0] +
-                    matrix[i + 1][j - 1] * contrast[3][1] +
-                    matrix[i + 1][j] * contrast[3][2] +
-                    matrix[i + 1][j + 1] * contrast[3][3] +
-                    matrix[i + 1][j + 2] * contrast[3][4] +
-                    matrix[i + 2][j - 2] * contrast[4][0] +
-                    matrix[i + 2][j - 1] * contrast[4][1] +
-                    matrix[i + 2][j] * contrast[4][2] +
-                    matrix[i + 2][j + 1] * contrast[4][3] +
-                    matrix[i + 2][j + 2] * contrast[4][4]) /
-                273)
-            .floor();
+    for (int i = 0; i < matrix.length; ++i) {
+      for (int j = 0; j < matrix[0].length; ++j) {
+        newMatrix[i][j] = 0;
+        for (int k = -r; k <= r; ++k) {
+          for (int f = -r; f <= r; ++f) {
+            if (isPixel(i + k, j + f, matrix.length, matrix[0].length)) {
+              newMatrix[i][j] += matrix[i + k][j + f];
+            } else {
+              newMatrix[i][j] += matrix[i][j];
+            }
+          }
+        }
+        newMatrix[i][j] =
+            (newMatrix[i][j] / ((2 * r + 1) * (2 * r + 1))).floor();
       }
     }
     return newMatrix;
   }
 
   Future convFilter() async {
+    int rad = 3;
     final im = img.decodeImage(srcImage!);
     final pixels = im!.getBytes(format: img.Format.rgba);
 
@@ -146,24 +141,16 @@ class _HomePageState extends State<HomePage> {
             im.width, (int j) => pixels[i * 4 * im.width + j * 4 + 2],
             growable: false),
         growable: false);
-    var aMatrix = List.generate(
-        im.height,
-        (int i) => List.generate(
-            im.width, (int j) => pixels[i * 4 * im.width + j * 4 + 3],
-            growable: false),
-        growable: false);
 
-    rMatrix = filter(rMatrix);
-    gMatrix = filter(gMatrix);
-    bMatrix = filter(bMatrix);
-    // aMatrix = filter(aMatrix);
+    rMatrix = filter(rMatrix, rad);
+    gMatrix = filter(gMatrix, rad);
+    bMatrix = filter(bMatrix, rad);
 
     for (int i = 0; i < im.height; ++i) {
       for (int j = 0; j < im.width; ++j) {
         pixels[i * im.width * 4 + j * 4] = rMatrix[i][j];
         pixels[i * im.width * 4 + j * 4 + 1] = gMatrix[i][j];
         pixels[i * im.width * 4 + j * 4 + 2] = bMatrix[i][j];
-        pixels[i * im.width * 4 + j * 4 + 3] = aMatrix[i][j];
       }
     }
 
@@ -177,12 +164,78 @@ class _HomePageState extends State<HomePage> {
     initialColor: Colors.white,
   );
 
+  Future colorFilter() async {
+    final im = img.decodeImage(srcImage!);
+    final pixels = im!.getBytes(format: img.Format.rgba);
+
+    var rMatrix = List.generate(
+        im.height,
+        (int i) => List.generate(
+            im.width, (int j) => pixels[i * 4 * im.width + j * 4],
+            growable: false),
+        growable: false);
+    var gMatrix = List.generate(
+        im.height,
+        (int i) => List.generate(
+            im.width, (int j) => pixels[i * 4 * im.width + j * 4 + 1],
+            growable: false),
+        growable: false);
+    var bMatrix = List.generate(
+        im.height,
+        (int i) => List.generate(
+            im.width, (int j) => pixels[i * 4 * im.width + j * 4 + 2],
+            growable: false),
+        growable: false);
+    int dr = (primaryColor.red / 2).floor();
+    int dg = (primaryColor.green / 2).floor();
+    int db = (primaryColor.blue / 2).floor();
+    print(dr);
+    print(dg);
+    print(db);
+
+    for (int i = 0; i < im.height; ++i) {
+      for (int j = 0; j < im.width; ++j) {
+        rMatrix[i][j] = min(rMatrix[i][j] + dr, 255);
+        gMatrix[i][j] = min(gMatrix[i][j] + dg, 255);
+        bMatrix[i][j] = min(bMatrix[i][j] + db, 255);
+      }
+    }
+
+    for (int i = 0; i < im.height; ++i) {
+      for (int j = 0; j < im.width; ++j) {
+        pixels[i * im.width * 4 + j * 4] = rMatrix[i][j];
+        pixels[i * im.width * 4 + j * 4 + 1] = gMatrix[i][j];
+        pixels[i * im.width * 4 + j * 4 + 2] = bMatrix[i][j];
+      }
+    }
+
+    setState(() {
+      _image = img.encodeJpg(im) as Uint8List?;
+    });
+  }
+
   Widget buildColorPicker() => CircleColorPicker(
         controller: _controller,
         onChanged: (color) {
           setState(() => primaryColor = color);
         },
       );
+
+  int blurRadius = 1;
+  double _currentSliderValue = 20;
+  Widget getSlider() {
+    return Slider(
+        value: _currentSliderValue,
+        max: 100,
+        divisions: 5,
+        label: _currentSliderValue.round().toString(),
+        onChanged: (double value) {
+          setState(() {
+            _currentSliderValue = value;
+            blurRadius = value.toInt();
+          });
+        });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -201,9 +254,7 @@ class _HomePageState extends State<HomePage> {
       )),
       body: Center(
           child: _image != null
-              ? ColorFiltered(
-                  colorFilter: ColorFilter.mode(primaryColor, BlendMode.color),
-                  child: Image.memory(_image!))
+              ? Image.memory(_image!)
               : const Text("No img yet...")),
       floatingActionButton: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -220,7 +271,10 @@ class _HomePageState extends State<HomePage> {
                           content: buildColorPicker(),
                           actions: [
                             TextButton(
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: () => {
+                                      colorFilter(),
+                                      Navigator.pop(context),
+                                    },
                                 child: const Text("OK")),
                           ],
                         ),
