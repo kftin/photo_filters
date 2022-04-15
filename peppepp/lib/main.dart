@@ -214,6 +214,56 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future contrastFilter() async {
+    final im = img.decodeImage(srcImage!);
+    final pixels = im!.getBytes(format: img.Format.rgba);
+
+    var rMatrix = List.generate(
+        im.height,
+            (int i) => List.generate(
+            im.width, (int j) => pixels[i * 4 * im.width + j * 4],
+            growable: false),
+        growable: false);
+    var gMatrix = List.generate(
+        im.height,
+            (int i) => List.generate(
+            im.width, (int j) => pixels[i * 4 * im.width + j * 4 + 1],
+            growable: false),
+        growable: false);
+    var bMatrix = List.generate(
+        im.height,
+            (int i) => List.generate(
+            im.width, (int j) => pixels[i * 4 * im.width + j * 4 + 2],
+            growable: false),
+        growable: false);
+    // int dr = (primaryColor.red / 2).floor();
+    // int dg = (primaryColor.green / 2).floor();
+    // int db = (primaryColor.blue / 2).floor();
+    // print(dr);
+    // print(dg);
+    // print(db);
+
+    for (int i = 0; i < im.height; ++i) {
+      for (int j = 0; j < im.width; ++j) {
+        rMatrix[i][j] = min((rMatrix[i][j] * 1.2).floor(), 255);
+        gMatrix[i][j] = min((gMatrix[i][j] * 1.2).floor(), 255);
+        bMatrix[i][j] = min((bMatrix[i][j] * 1.2).floor(), 255);
+      }
+    }
+
+    for (int i = 0; i < im.height; ++i) {
+      for (int j = 0; j < im.width; ++j) {
+        pixels[i * im.width * 4 + j * 4] = rMatrix[i][j];
+        pixels[i * im.width * 4 + j * 4 + 1] = gMatrix[i][j];
+        pixels[i * im.width * 4 + j * 4 + 2] = bMatrix[i][j];
+      }
+    }
+
+    setState(() {
+      _image = img.encodeJpg(im) as Uint8List?;
+    });
+  }
+
   Widget buildColorPicker() => CircleColorPicker(
         controller: _controller,
         onChanged: (color) {
@@ -290,7 +340,16 @@ class _HomePageState extends State<HomePage> {
                 IconButton(
                     onPressed: convFilter,
                     icon: const Icon(Icons.blur_circular)),
-                const Text("Gauss blur")
+                const Text("Blur")
+              ],
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                IconButton(
+                    onPressed: contrastFilter,
+                    icon: const Icon(Icons.contrast_outlined)),
+                const Text("Blur")
               ],
             )
           ]),
