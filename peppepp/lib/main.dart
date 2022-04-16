@@ -214,6 +214,58 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future saturationFilter() async {
+    final im = img.decodeImage(srcImage!);
+    final pixels = im!.getBytes(format: img.Format.rgba);
+
+    var rMatrix = List.generate(
+        im.height,
+            (int i) => List.generate(
+            im.width, (int j) => pixels[i * 4 * im.width + j * 4],
+            growable: false),
+        growable: false);
+    var gMatrix = List.generate(
+        im.height,
+            (int i) => List.generate(
+            im.width, (int j) => pixels[i * 4 * im.width + j * 4 + 1],
+            growable: false),
+        growable: false);
+    var bMatrix = List.generate(
+        im.height,
+            (int i) => List.generate(
+            im.width, (int j) => pixels[i * 4 * im.width + j * 4 + 2],
+            growable: false),
+        growable: false);
+
+    double s = 1.5;
+    double lumR = 0.3086;
+    double lumG = 0.6094;
+    double lumB = 0.0820;
+    int sr = ((1 - s) * lumR).floor();
+    int sg = ((1 - s) * lumG).floor();
+    int sb = ((1 - s) * lumB).floor();
+
+    for (int i = 0; i < im.height; ++i) {
+      for (int j = 0; j < im.width; ++j) {
+        rMatrix[i][j] = min((rMatrix[i][j] * sr).floor(), 255);
+        gMatrix[i][j] = min((gMatrix[i][j] * sg).floor(), 255);
+        bMatrix[i][j] = min((bMatrix[i][j] * sb).floor(), 255);
+      }
+    }
+
+    for (int i = 0; i < im.height; ++i) {
+      for (int j = 0; j < im.width; ++j) {
+        pixels[i * im.width * 4 + j * 4] = rMatrix[i][j];
+        pixels[i * im.width * 4 + j * 4 + 1] = gMatrix[i][j];
+        pixels[i * im.width * 4 + j * 4 + 2] = bMatrix[i][j];
+      }
+    }
+
+    setState(() {
+      _image = img.encodeJpg(im) as Uint8List?;
+    });
+  }
+
   Future contrastFilter() async {
     final im = img.decodeImage(srcImage!);
     final pixels = im!.getBytes(format: img.Format.rgba);
@@ -348,8 +400,17 @@ class _HomePageState extends State<HomePage> {
               children: <Widget>[
                 IconButton(
                     onPressed: contrastFilter,
-                    icon: const Icon(Icons.contrast_outlined)),
-                const Text("Blur")
+                    icon: const Icon(Icons.waves_outlined)),
+                const Text("Contrast")
+              ],
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                IconButton(
+                    onPressed: saturationFilter,
+                    icon: const Icon(Icons.wb_sunny_outlined)),
+                const Text("Saturation")
               ],
             )
           ]),
