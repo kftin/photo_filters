@@ -34,14 +34,6 @@ class _HomePageState extends State<HomePage> {
   Uint8List? srcImage;
   String? _path;
 
-  // final List<List<int>> contrast = [
-  //   [1, 4, 7, 4, 1],
-  //   [4, 16, 26, 16, 4],
-  //   [7, 26, 41, 26, 7],
-  //   [4, 16, 26, 16, 4],
-  //   [1, 4, 7, 4, 1],
-  // ];
-
   final imagePicker = ImagePicker();
 
   Future getImageCamera() async {
@@ -79,7 +71,6 @@ class _HomePageState extends State<HomePage> {
       pickText: 'Save file to this folder',
       rootDirectory: Directory('/storage/emulated/0/Download/'),
     );
-    // print(path);
     File file = File(path! + '/testImage.jpg');
     file.writeAsBytes(_image as List<int>);
     setState(() {
@@ -119,7 +110,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future convFilter() async {
-    int rad = 3;
+    int rad = blurRadius;
     final im = img.decodeImage(srcImage!);
     final pixels = im!.getBytes(format: img.Format.rgba);
 
@@ -189,9 +180,6 @@ class _HomePageState extends State<HomePage> {
     int dr = (primaryColor.red / 2).floor();
     int dg = (primaryColor.green / 2).floor();
     int db = (primaryColor.blue / 2).floor();
-    print(dr);
-    print(dg);
-    print(db);
 
     for (int i = 0; i < im.height; ++i) {
       for (int j = 0; j < im.width; ++j) {
@@ -220,19 +208,19 @@ class _HomePageState extends State<HomePage> {
 
     var rMatrix = List.generate(
         im.height,
-            (int i) => List.generate(
+        (int i) => List.generate(
             im.width, (int j) => pixels[i * 4 * im.width + j * 4],
             growable: false),
         growable: false);
     var gMatrix = List.generate(
         im.height,
-            (int i) => List.generate(
+        (int i) => List.generate(
             im.width, (int j) => pixels[i * 4 * im.width + j * 4 + 1],
             growable: false),
         growable: false);
     var bMatrix = List.generate(
         im.height,
-            (int i) => List.generate(
+        (int i) => List.generate(
             im.width, (int j) => pixels[i * 4 * im.width + j * 4 + 2],
             growable: false),
         growable: false);
@@ -272,28 +260,22 @@ class _HomePageState extends State<HomePage> {
 
     var rMatrix = List.generate(
         im.height,
-            (int i) => List.generate(
+        (int i) => List.generate(
             im.width, (int j) => pixels[i * 4 * im.width + j * 4],
             growable: false),
         growable: false);
     var gMatrix = List.generate(
         im.height,
-            (int i) => List.generate(
+        (int i) => List.generate(
             im.width, (int j) => pixels[i * 4 * im.width + j * 4 + 1],
             growable: false),
         growable: false);
     var bMatrix = List.generate(
         im.height,
-            (int i) => List.generate(
+        (int i) => List.generate(
             im.width, (int j) => pixels[i * 4 * im.width + j * 4 + 2],
             growable: false),
         growable: false);
-    // int dr = (primaryColor.red / 2).floor();
-    // int dg = (primaryColor.green / 2).floor();
-    // int db = (primaryColor.blue / 2).floor();
-    // print(dr);
-    // print(dg);
-    // print(db);
 
     for (int i = 0; i < im.height; ++i) {
       for (int j = 0; j < im.width; ++j) {
@@ -324,7 +306,8 @@ class _HomePageState extends State<HomePage> {
       );
 
   int blurRadius = 1;
-  double _currentSliderValue = 20;
+  double _currentSliderValue = 1;
+
   Widget getSlider() {
     return Slider(
         value: _currentSliderValue,
@@ -390,7 +373,40 @@ class _HomePageState extends State<HomePage> {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 IconButton(
-                    onPressed: convFilter,
+                    onPressed: () {
+                      showDialog(
+                          context: context,
+                          builder: (context) {
+                            return StatefulBuilder(
+                              builder: (context, setState) {
+                                return AlertDialog(
+                                  title: const Text("Chose blur radius"),
+                                  content: Slider(
+                                      value: _currentSliderValue,
+                                      max: 10,
+                                      divisions: 10,
+                                      label: _currentSliderValue
+                                          .round()
+                                          .toString(),
+                                      onChanged: (double value) {
+                                        setState(() {
+                                          _currentSliderValue = value;
+                                          blurRadius = value.toInt();
+                                        });
+                                      }),
+                                  actions: [
+                                    TextButton(
+                                        onPressed: () => {
+                                              convFilter(),
+                                              Navigator.pop(context),
+                                            },
+                                        child: const Text("OK")),
+                                  ],
+                                );
+                              },
+                            );
+                          });
+                    },
                     icon: const Icon(Icons.blur_circular)),
                 const Text("Blur")
               ],
